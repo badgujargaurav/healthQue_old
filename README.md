@@ -42,6 +42,7 @@ To set up the new repository with environment branches:
 ### Available Tools
 
 - **[REPO_SETUP.md](./REPO_SETUP.md)** - Complete guide for repository setup and branch management
+- **[SAFETY_NOTES.md](./SAFETY_NOTES.md)** - Important safety warnings and best practices
 - **[scripts/init-branches.sh](./scripts/init-branches.sh)** - Bash script for automated branch creation
 - **[scripts/init-branches.ps1](./scripts/init-branches.ps1)** - PowerShell script for automated branch creation
 - **[.github/workflows/manage-branches.yml](./.github/workflows/manage-branches.yml)** - GitHub Actions workflow for branch management
@@ -49,6 +50,7 @@ To set up the new repository with environment branches:
 ### Documentation
 
 - 📖 [Complete Repository Setup Guide](./REPO_SETUP.md)
+- 🔒 [Safety Notes and Best Practices](./SAFETY_NOTES.md)
 - 🔧 [Automation Scripts](./scripts/)
 - ⚙️ [GitHub Actions Workflows](./.github/workflows/)
 

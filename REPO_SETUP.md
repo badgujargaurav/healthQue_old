@@ -2,6 +2,8 @@
 
 This guide provides instructions for creating a new `healthQue` repository with a proper environment branch hierarchy.
 
+> ⚠️ **Important**: Before proceeding, please review the [Safety Notes and Best Practices](./SAFETY_NOTES.md) document for important warnings, security guidelines, and error handling procedures.
+
 ## Overview
 
 The new `healthQue` repository will use a hierarchical branch structure to support different deployment environments:
