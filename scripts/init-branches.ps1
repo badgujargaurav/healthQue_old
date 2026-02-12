@@ -168,10 +168,18 @@ function New-RemoteBranch {
                     sha = $sha
                 } | ConvertTo-Json
                 
-                $null = gh api "repos/$RepoFullName/git/refs" --method POST --input - 2>&1 <<< $body
-                if ($LASTEXITCODE -eq 0) {
-                    Write-Success "Created branch '$Branch' (via API)"
-                    return $true
+                # Write body to temp file for gh api
+                $tempFile = New-TemporaryFile
+                try {
+                    $body | Out-File -FilePath $tempFile.FullName -Encoding utf8 -NoNewline
+                    $null = gh api "repos/$RepoFullName/git/refs" --method POST --input $tempFile.FullName 2>&1
+                    if ($LASTEXITCODE -eq 0) {
+                        Write-Success "Created branch '$Branch' (via API)"
+                        return $true
+                    }
+                }
+                finally {
+                    Remove-Item -Path $tempFile.FullName -ErrorAction SilentlyContinue
                 }
             }
         }

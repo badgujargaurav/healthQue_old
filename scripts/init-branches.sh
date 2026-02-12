@@ -20,7 +20,7 @@
 #   - Write access to the repository
 #############################################################################
 
-set -e  # Exit on error
+set -euo pipefail  # Exit on error, unset variables, and pipeline failures
 
 # Colors for output
 RED='\033[0;31m'
