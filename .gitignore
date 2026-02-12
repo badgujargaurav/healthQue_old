@@ -1,0 +1,30 @@
+# Ignore temporary files
+*.log
+*.tmp
+*.swp
+*~
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore editor files
+.vscode/
+.idea/
+*.sublime-*
+
+# Ignore test repositories (if any)
+test-repo/
+*-test/
+
+# Ignore credentials and sensitive files
+.env
+.env.local
+*.pem
+*.key
+credentials.json
+token.txt
+
+# Ignore backup files
+*.bak
+*.backup
