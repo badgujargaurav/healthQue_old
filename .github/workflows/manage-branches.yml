@@ -1,0 +1,168 @@
+name: Manage Environment Branches
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_branch:
+        description: 'Base branch to create new branches from'
+        required: true
+        default: 'main'
+        type: string
+      dry_run:
+        description: 'Dry run (simulate without creating branches)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  manage-branches:
+    runs-on: ubuntu-latest
+    name: Create/Update Environment Branches
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.base_branch }}
+          fetch-depth: 0
+      
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Validate base branch
+        id: validate
+        run: |
+          echo "Validating base branch: ${{ inputs.base_branch }}"
+          
+          if ! git show-ref --verify --quiet refs/heads/${{ inputs.base_branch }}; then
+            if ! git show-ref --verify --quiet refs/remotes/origin/${{ inputs.base_branch }}; then
+              echo "::error::Base branch '${{ inputs.base_branch }}' does not exist"
+              exit 1
+            fi
+          fi
+          
+          echo "✓ Base branch exists"
+          echo "base_sha=$(git rev-parse origin/${{ inputs.base_branch }})" >> $GITHUB_OUTPUT
+      
+      - name: Create environment branches
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -e
+          
+          # Define branch hierarchy
+          branches=(
+            "prod"
+            "pre-prod"
+            "staging"
+            "qa"
+            "dev"
+            "dev-phases"
+          )
+          
+          base_branch="${{ inputs.base_branch }}"
+          base_sha="${{ steps.validate.outputs.base_sha }}"
+          repo="${{ github.repository }}"
+          
+          echo "=========================================="
+          echo "Environment Branch Management"
+          echo "=========================================="
+          echo "Repository: $repo"
+          echo "Base branch: $base_branch"
+          echo "Base SHA: $base_sha"
+          echo "Dry run: $DRY_RUN"
+          echo ""
+          
+          created_count=0
+          skipped_count=0
+          failed_count=0
+          
+          for branch in "${branches[@]}"; do
+            echo "----------------------------------------"
+            echo "Processing branch: $branch"
+            
+            # Check if branch exists
+            if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+              echo "⚠️  Branch '$branch' already exists - skipping"
+              skipped_count=$((skipped_count + 1))
+              continue
+            fi
+            
+            if [[ "$DRY_RUN" == "true" ]]; then
+              echo "🔍 [DRY RUN] Would create branch '$branch' from '$base_branch'"
+              created_count=$((created_count + 1))
+              continue
+            fi
+            
+            # Create the branch
+            echo "Creating branch '$branch' from '$base_branch'..."
+            
+            if git push origin "$base_sha:refs/heads/$branch"; then
+              echo "✅ Successfully created branch '$branch'"
+              created_count=$((created_count + 1))
+            else
+              echo "❌ Failed to create branch '$branch'"
+              failed_count=$((failed_count + 1))
+            fi
+          done
+          
+          echo ""
+          echo "=========================================="
+          echo "Summary"
+          echo "=========================================="
+          echo "Branches created: $created_count"
+          echo "Branches skipped (already exist): $skipped_count"
+          echo "Branches failed: $failed_count"
+          echo ""
+          
+          if [[ "$DRY_RUN" == "true" ]]; then
+            echo "ℹ️  This was a dry run - no branches were actually created"
+            echo "   Run again with dry_run=false to create the branches"
+          fi
+          
+          # Set summary
+          echo "## Branch Management Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository:** $repo" >> $GITHUB_STEP_SUMMARY
+          echo "**Base Branch:** $base_branch" >> $GITHUB_STEP_SUMMARY
+          echo "**Dry Run:** $DRY_RUN" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Branches created: $created_count" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚠️  Branches skipped: $skipped_count" >> $GITHUB_STEP_SUMMARY
+          echo "- ❌ Branches failed: $failed_count" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ $failed_count -gt 0 ]]; then
+            echo ""
+            echo "::error::Failed to create $failed_count branch(es). Check the logs for details."
+            exit 1
+          fi
+          
+          echo ""
+          echo "=========================================="
+          echo "Next Steps"
+          echo "=========================================="
+          echo "1. Verify branches: https://github.com/$repo/branches"
+          echo "2. Set up branch protection rules (Settings → Branches)"
+          echo "3. Configure default branch if needed (Settings → Branches)"
+          echo "4. Review REPO_SETUP.md for additional configuration"
+      
+      - name: List all branches
+        run: |
+          echo "Current branches in repository:"
+          git branch -r | grep -v '\->' | sed 's/origin\//  /'
+      
+      - name: Post-creation status
+        if: success() && inputs.dry_run == false
+        run: |
+          echo "✅ Branch management workflow completed successfully"
+          echo ""
+          echo "🔗 View branches: https://github.com/${{ github.repository }}/branches"
+          echo "📖 Next: Review REPO_SETUP.md for branch protection and workflow configuration"
